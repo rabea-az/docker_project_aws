@@ -1,0 +1,12 @@
+flask
+pyyaml
+loguru
+
+# testing
+
+pylint
+pytest
+pymongo
+
+# aws boto3
+boto3

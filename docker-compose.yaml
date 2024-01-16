@@ -1,0 +1,63 @@
+version: '3'
+
+services:
+  mongodb:
+    image: mongo:4.4
+    container_name: mongodb-container
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: rabea
+      MONGO_INITDB_ROOT_PASSWORD: rabea
+      MONGO_INITDB_DATABASE: rabea_db
+    volumes:
+      - ./db_data:/data/db
+
+  yolo:
+    image: 933060838752.dkr.ecr.eu-central-1.amazonaws.com/rabea-yolo
+    depends_on:
+      - mongodb
+    container_name: yolo-container
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      - BUCKET_NAME=rabea-bucket
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+
+  polybot:
+    image: python:3.9-alpine
+    depends_on:
+      - mongodb
+      - yolo
+    working_dir: "/app"
+    container_name: polybot-container
+    restart: always
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./polybot:/app
+    environment:
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - TELEGRAM_APP_URL=https://55c4-83-130-47-10.ngrok-free.app 
+      - BUCKET_NAME=rabea-bucket
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        python3 app.py
+
+  snyk:
+    image: snyk/snyk-cli:docker
+    container_name: snyk-container
+    command: test --docker mongodb
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+     - SNYK_TOKEN=${SNYK_TOKEN}
